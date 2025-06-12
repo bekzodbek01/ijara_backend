@@ -76,13 +76,9 @@ class FaceCompareAPIView(APIView):
             passport_array = np.array(passport_img)
             face_array = np.array(face_img)
 
-            # Face location
-            try:
-                passport_locations = face_recognition.face_locations(passport_array, model='cnn')
-                face_locations = face_recognition.face_locations(face_array, model='cnn')
-            except:
-                passport_locations = face_recognition.face_locations(passport_array, model='hog')
-                face_locations = face_recognition.face_locations(face_array, model='hog')
+            # faqat HOG modeli
+            passport_locations = face_recognition.face_locations(passport_array, model='hog')
+            face_locations = face_recognition.face_locations(face_array, model='hog')
 
             if not passport_locations or not face_locations:
                 return None
@@ -98,7 +94,6 @@ class FaceCompareAPIView(APIView):
         except Exception as e:
             print("Face comparison error:", e)
             return None
-
 
 
 class UserRegistrationView(generics.CreateAPIView):

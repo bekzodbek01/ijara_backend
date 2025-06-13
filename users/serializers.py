@@ -91,3 +91,39 @@ class FaceCompareResponseSerializer(serializers.ModelSerializer):
         if obj.face_image and hasattr(obj.face_image, 'url'):
             return request.build_absolute_uri(obj.face_image.url)
         return None
+
+class UserContactSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AbstractUser
+        fields = ['full_name', 'phone', 'gmail', 'telegram', 'image']
+        extra_kwargs = {
+            'full_name': {'required': False},
+            'phone': {'required': False},
+            'gmail': {'required': False},
+            'telegram': {'required': False},
+        }
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image and hasattr(obj.image, 'url'):
+            return request.build_absolute_uri(obj.image.url)
+        return None
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        image_data = request.FILES.get("image")
+
+        if request and request.data.get("image") in ["null", "", None]:
+            instance.image.delete(save=True)
+
+        for field in ['full_name', 'phone', 'gmail', 'telegram']:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+
+        if image_data:
+            instance.image = image_data
+
+        instance.save()
+        return instance

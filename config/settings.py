@@ -28,6 +28,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+SIMPLE_JWT = {
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ROTATE_REFRESH_TOKENS": True,
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+}
+
 
 # Application definition
 
@@ -41,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'users',
     'house',
 ]
@@ -77,7 +84,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+#
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',

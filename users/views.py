@@ -148,8 +148,73 @@ class UserPasswordChangeView(generics.GenericAPIView):
 #rgerger
 
 
+from .serializers import UserContactSerializer
 
 
+class UpdateContactView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = UserContactSerializer(
+            request.user, data=request.data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Kontakt ma'lumotlari yangilandi.", "data": serializer.data})
+        return Response(serializer.errors, status=400)
 
 
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def patch(self, request):
+        serializer = UserContactSerializer(
+            request.user, data=request.data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profil yangilandi.", "data": serializer.data})
+        return Response(serializer.errors, status=400)
+
+
+class UserInfoView(APIView):
+    permission_classes = [IsAuthenticated]  # faqat token bo‘lsa yetarli
+
+    def get(self, request):
+        try:
+            # JWT token orqali kelgan user.id ni modelda tekshirish
+            user = AbstractUser.objects.get(id=request.user.id)
+        except AbstractUser.DoesNotExist:
+            return Response({
+                "message": "Foydalanuvchi ro‘yxatdan o‘tmagan yoki o‘chirilgan."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserContactSerializer(user, context={"request": request})
+        return Response({
+            "message": "Foydalanuvchi ma'lumotlari muvaffaqiyatli olindi.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logout muvaffaqiyatli bajarildi."})
+        except Exception as e:
+            return Response({"Logout hato bajarildi": str(e)}, status=400)
+
+
+class ProfileImageDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        if user.image:
+            user.image.delete(save=True)
+            return Response({"message": "Profil rasmi o‘chirildi."}, status=status.HTTP_200_OK)
+        return Response({"message": "Profil rasm yo‘q edi."}, status=status.HTTP_400_BAD_REQUEST)

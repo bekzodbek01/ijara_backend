@@ -168,13 +168,19 @@ class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
+        user = request.user
         serializer = UserContactSerializer(
-            request.user, data=request.data, partial=True, context={"request": request}
+            user, data=request.data, partial=True, context={"request": request}
         )
+
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Profil yangilandi.", "data": serializer.data})
-        return Response(serializer.errors, status=400)
+            return Response({
+                "message": "Profil muvaffaqiyatli yangilandi.",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserInfoView(APIView):
@@ -216,5 +222,7 @@ class ProfileImageDeleteView(APIView):
         user = request.user
         if user.image:
             user.image.delete(save=True)
-            return Response({"message": "Profil rasmi o‘chirildi."}, status=status.HTTP_200_OK)
-        return Response({"message": "Profil rasm yo‘q edi."}, status=status.HTTP_400_BAD_REQUEST)
+            user.image = None
+            user.save()
+            return Response({"message": "Profil rasmi o‘chirildi."}, status=200)
+        return Response({"message": "Profil rasm yo‘q edi."}, status=400)

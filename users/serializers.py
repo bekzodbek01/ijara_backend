@@ -115,15 +115,12 @@ class UserContactSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         image_data = self.context.get("request").FILES.get("image")
 
-        # Faqat yangi rasm bo‘lsa, yangilanadi
         if image_data:
             instance.image = image_data
 
-        # Faqat matnli maydonlar yangilanadi
         for field in ['full_name', 'phone', 'gmail', 'telegram']:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
 
         instance.save()
         return instance
-

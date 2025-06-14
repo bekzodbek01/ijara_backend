@@ -167,10 +167,13 @@ class UpdateContactView(APIView):
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request):
+    def put(self, request):
         user = request.user
         serializer = UserContactSerializer(
-            user, data=request.data, partial=True, context={"request": request}
+            user,
+            data=request.data,
+            partial=True,  # bu yerda `partial=True` bo‘lishi orqali PATCH kabi harakat qiladi
+            context={"request": request}
         )
 
         if serializer.is_valid():

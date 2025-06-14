@@ -222,10 +222,10 @@ class ProfileImageDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request):
-        delete_flag = str(request.data.get("delete")).lower()
+        delete_flag = str(request.query_params.get("delete", "")).lower()
 
         if delete_flag not in ["true", "1"]:
-            return Response({"message": "`delete=true` yuborilishi shart."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "`delete=true` query parametri yuborilishi shart."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
 

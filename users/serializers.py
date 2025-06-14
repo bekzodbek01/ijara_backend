@@ -92,12 +92,13 @@ class FaceCompareResponseSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.face_image.url)
         return None
 
+
 class UserContactSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
     class Meta:
         model = AbstractUser
-        fields = ['full_name', 'phone', 'gmail', 'telegram', 'image']
+        fields = ['id', 'full_name', 'phone', 'gmail', 'telegram', 'image']
         extra_kwargs = {
             'full_name': {'required': False},
             'phone': {'required': False},

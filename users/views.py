@@ -219,10 +219,17 @@ class ProfileImageDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request):
+        delete_flag = str(request.data.get("delete")).lower()
+
+        if delete_flag not in ["true", "1"]:
+            return Response({"message": "`delete=true` yuborilishi shart."}, status=status.HTTP_400_BAD_REQUEST)
+
         user = request.user
+
         if user.image:
-            user.image.delete(save=True)
+            user.image.delete(save=False)
             user.image = None
             user.save()
-            return Response({"message": "Profil rasmi o‘chirildi."}, status=200)
-        return Response({"message": "Profil rasm yo‘q edi."}, status=400)
+            return Response({"message": "Profil rasmi o‘chirildi."}, status=status.HTTP_200_OK)
+
+        return Response({"message": "Profil rasmi mavjud emas edi."}, status=status.HTTP_400_BAD_REQUEST)

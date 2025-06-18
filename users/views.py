@@ -1,9 +1,9 @@
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, permissions
 from .serializers import FaceCompareSerializer, FaceCompareResponseSerializer, UserPasswordChangeSerializer, \
-    UserRegistrationSerializer, UserLoginSerializer
+    UserRegistrationSerializer, UserLoginSerializer, Userprofil, UserprofilSerializer
 from .models import FaceComparison, AbstractUser
 import face_recognition
 import numpy as np
@@ -236,3 +236,16 @@ class ProfileImageDeleteView(APIView):
             return Response({"message": "Profil rasmi o‘chirildi."}, status=status.HTTP_200_OK)
 
         return Response({"message": "Profil rasmi mavjud emas edi."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MyProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = request.user.profile  # related_name='profile' kerak
+        except Userprofil.DoesNotExist:
+            return Response({"detail": "Profil topilmadi."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserprofilSerializer(profile)
+        return Response(serializer.data)

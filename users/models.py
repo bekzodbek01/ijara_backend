@@ -44,8 +44,6 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=255)
     phone = models.CharField(max_length=15, unique=True)
     image = models.ImageField(upload_to='profil/image', blank=True, null=True)
-    gmail = models.CharField(max_length=255, blank=True, null=True)
-    telegram = models.CharField(max_length=255, blank=True, null=True)
     passport_scan = models.ImageField(upload_to='passport_scan/', blank=True, null=True)
     passport_back_scan = models.ImageField(upload_to='passport_back_scan', blank=True, null=True)
     passport_scan_with_face = models.ImageField(upload_to='passport_scan_with_face', blank=True, null=True)
@@ -74,3 +72,17 @@ class FaceComparison(models.Model):
 
     def __str__(self):
         return f"FaceComparison #{self.id} - Match: {self.match_result}"
+
+
+class Userprofil(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    gmail = models.CharField(max_length=255, blank=True, null=True)
+    telegram = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.full_name} profiling ma'lumotlari"

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FaceComparison, AbstractUser
+from .models import FaceComparison, AbstractUser, Userprofil
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -98,12 +98,11 @@ class UserContactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AbstractUser
-        fields = ['id', 'full_name', 'phone', 'gmail', 'telegram', 'image']
+        fields = ['id', 'full_name', 'phone', 'image']
         extra_kwargs = {
             'full_name': {'required': False},
             'phone': {'required': False},
-            'gmail': {'required': False},
-            'telegram': {'required': False},
+
         }
 
     def get_image(self, obj):
@@ -118,9 +117,17 @@ class UserContactSerializer(serializers.ModelSerializer):
         if image_data:
             instance.image = image_data
 
-        for field in ['full_name', 'phone', 'gmail', 'telegram']:
+        for field in ['full_name', 'phone',]:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
 
         instance.save()
         return instance
+
+
+from .models import Userprofil
+
+class UserprofilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Userprofil
+        fields = ['id', 'phone', 'gmail', 'telegram']

@@ -18,7 +18,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('phone', 'password')}),
         (_('Shaxsiy Ma\'lumotlar'), {
             'fields': (
-                'full_name', 'role', 'gmail', 'telegram', 'image',
+                'full_name', 'role', 'image',
                 'passport_scan', 'passport_back_scan', 'passport_scan_with_face',
                 'passport_seria'
             )
@@ -41,3 +41,10 @@ class UserAdmin(BaseUserAdmin):
 class FaceComparisonAdmin(admin.ModelAdmin):
     list_display = ('match_result', 'created_at')
 
+
+from .models import Userprofil
+
+
+@admin.register(Userprofil)
+class UserprofilAdmin(admin.ModelAdmin):
+    list_display = ['phone', 'gmail', 'telegram']

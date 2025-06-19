@@ -131,4 +131,4 @@ from .models import GlobalUserContact
 class GlobalContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlobalUserContact
-        fields = ['phon', 'gmail', 'telegram']
+        fields = ['phone', 'gmail', 'telegram']

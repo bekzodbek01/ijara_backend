@@ -12,6 +12,12 @@ class House(models.Model):
     phone_number = models.CharField(max_length=15, blank=True, null=True)  # ko‘rsatilgan bo‘lsa
     views_count = models.PositiveIntegerField(default=0)
     contacts_count = models.PositiveIntegerField(default=0)
+    # STATUS_CHOICES = [
+    #     ('pending', 'Kutilmoqda'),
+    #     ('active', 'Faol'),
+    #     ('deactive', 'NoFaol'),
+    # ]
+    # status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

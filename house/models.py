@@ -3,6 +3,11 @@ from users.models import AbstractUser
 
 
 class House(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Kutilmoqda'),
+        ('active', 'Faol'),
+        ('deactive', 'NoFaol'),
+    ]
     owner = models.ForeignKey(AbstractUser, on_delete=models.CASCADE, related_name='houses')
     price = models.DecimalField(max_digits=12, decimal_places=2)
     address = models.CharField(max_length=255)
@@ -12,12 +17,8 @@ class House(models.Model):
     phone_number = models.CharField(max_length=15, blank=True, null=True)  # ko‘rsatilgan bo‘lsa
     views_count = models.PositiveIntegerField(default=0)
     contacts_count = models.PositiveIntegerField(default=0)
-    # STATUS_CHOICES = [
-    #     ('pending', 'Kutilmoqda'),
-    #     ('active', 'Faol'),
-    #     ('deactive', 'NoFaol'),
-    # ]
-    # status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

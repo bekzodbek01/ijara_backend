@@ -1,5 +1,5 @@
 from rest_framework import generics, permissions
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .models import House
 from .permission import IsOwner, IsFaceVerified
@@ -46,7 +46,62 @@ class HouseCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsFaceVerified]
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        serializer.save(owner=self.request.user,  status='pending', is_active=False)
+
+
+class HousePublicListView(generics.ListAPIView):
+    queryset = House.objects.filter(status='active', is_active=True)
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+
+
+
+class MyDeactiveHouseListView(generics.ListAPIView):
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return House.objects.filter(owner=self.request.user, status='deactive')
+
+
+class HousePendingListView(generics.ListAPIView):
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return House.objects.filter(owner=self.request.user, status='pending')
+
+
+class ResendToAdminView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        house_id = request.data.get("house_id")
+        if not house_id:
+            return Response({"detail": "house_id yuborilishi shart."}, status=400)
+
+        try:
+            house = House.objects.get(id=house_id, owner=request.user)
+        except House.DoesNotExist:
+            return Response({"detail": "E’lon topilmadi yoki sizga tegishli emas."}, status=404)
+
+        if house.status != 'deactive':
+            return Response({
+                "detail": "Faqat rad etilgan e’londan keyin qayta yuborish mumkin.",
+                "current_status": house.status
+            }, status=400)
+
+        house.status = 'pending'
+        house.is_active = False
+        house.save()
+
+        return Response({
+            "detail": "E’lon qayta adminga yuborildi. Tasdiqlanishi kutilmoqda.",
+            "status_message": "Tasdiqlanmagan",
+            "is_active_status": False
+        }, status=status.HTTP_200_OK)
+
+
 
 # Tahrirlash va o‘chirish
 

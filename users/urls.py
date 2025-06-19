@@ -6,7 +6,7 @@ from .views import (
     UserInfoView,
     LogoutView,
     ProfileImageDeleteView,
-    MyProfileView,
+    GlobalContactView,
 )
 
 urlpatterns = [
@@ -21,6 +21,6 @@ urlpatterns = [
     path('profile/info/', UserInfoView.as_view(), name='profile-info'),                        # GET
     path('profile/logout/', LogoutView.as_view(), name='logout'),
     path('profile/image/', ProfileImageDeleteView.as_view(), name='profile-image-delete'),
-    path('user/profile/me/', MyProfileView.as_view()),
+    path('user/profile/me/', GlobalContactView.as_view()),
 ]
 

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from users.models import AbstractUser, FaceComparison
+from .models import AbstractUser, FaceComparison, GlobalUserContact
 
 from.models import AbstractUser
 
@@ -42,9 +42,6 @@ class FaceComparisonAdmin(admin.ModelAdmin):
     list_display = ('match_result', 'created_at')
 
 
-from .models import Userprofil
-
-
-@admin.register(Userprofil)
-class UserprofilAdmin(admin.ModelAdmin):
-    list_display = ['phone', 'gmail', 'telegram']
+@admin.register(GlobalUserContact)
+class GlobalUserContactAdmin(admin.ModelAdmin):
+    list_display = ('phone', 'gmail', 'telegram')

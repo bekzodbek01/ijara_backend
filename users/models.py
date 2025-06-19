@@ -73,16 +73,13 @@ class FaceComparison(models.Model):
     def __str__(self):
         return f"FaceComparison #{self.id} - Match: {self.match_result}"
 
+# users/models.py
 
-class Userprofil(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='profile'
-    )
+
+class GlobalUserContact(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     gmail = models.CharField(max_length=255, blank=True, null=True)
     telegram = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user.full_name} profiling ma'lumotlari"
+        return f"Global contact: {self.phone}"

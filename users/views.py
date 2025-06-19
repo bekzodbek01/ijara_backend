@@ -238,14 +238,16 @@ class ProfileImageDeleteView(APIView):
         return Response({"message": "Profil rasmi mavjud emas edi."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class MyProfileView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+from .models import GlobalUserContact
+from .serializers import GlobalContactSerializer
+
+
+class GlobalContactView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        try:
-            profile = request.user.profile  # related_name='profile' kerak
-        except Userprofil.DoesNotExist:
-            return Response({"detail": "Profil topilmadi."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = UserprofilSerializer(profile)
+        contact = GlobalUserContact.objects.first()
+        if not contact:
+            return Response({"detail": "Ma'lumotlar mavjud emas."}, status=404)
+        serializer = GlobalContactSerializer(contact)
         return Response(serializer.data)

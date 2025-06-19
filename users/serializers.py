@@ -125,9 +125,10 @@ class UserContactSerializer(serializers.ModelSerializer):
         return instance
 
 
-from .models import Userprofil
+from .models import GlobalUserContact
 
-class UserprofilSerializer(serializers.ModelSerializer):
+
+class GlobalContactSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Userprofil
-        fields = ['id', 'phone', 'gmail', 'telegram']
+        model = GlobalUserContact
+        fields = ['phon', 'gmail', 'telegram']

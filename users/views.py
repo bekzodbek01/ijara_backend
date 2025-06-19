@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
 from .serializers import FaceCompareSerializer, FaceCompareResponseSerializer, UserPasswordChangeSerializer, \
-    UserRegistrationSerializer, UserLoginSerializer, Userprofil, UserprofilSerializer
+    UserRegistrationSerializer, UserLoginSerializer
 from .models import FaceComparison, AbstractUser
 import face_recognition
 import numpy as np

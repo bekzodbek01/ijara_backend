@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FaceComparison, AbstractUser, Userprofil
+from .models import FaceComparison, AbstractUser
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

@@ -66,6 +66,15 @@ class HouseDeleteView(generics.DestroyAPIView):
     def get_queryset(self):
         return House.objects.filter(owner=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        house_id = instance.id  # oldindan ID ni olish
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"House #{house_id} deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+
 
 class HouseImageDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]

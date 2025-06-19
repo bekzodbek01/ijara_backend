@@ -3,8 +3,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import AbstractUser, FaceComparison, GlobalUserContact
 
-from.models import AbstractUser
-
 
 @admin.register(AbstractUser)
 class UserAdmin(BaseUserAdmin):
@@ -37,9 +35,14 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ('created_at', 'last_login')
 
 
+
 @admin.register(FaceComparison)
 class FaceComparisonAdmin(admin.ModelAdmin):
-    list_display = ('match_result', 'created_at')
+    list_display = ('id', 'user', 'match_result', 'created_at')
+    list_filter = ('match_result', 'created_at')
+    search_fields = ('user__username',)
+    fields = ('passport_image', 'face_image', 'match_result',)
+
 
 
 @admin.register(GlobalUserContact)

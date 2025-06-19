@@ -14,6 +14,13 @@ services:
       - "8002:8000"
     depends_on:
       - faceid_db
+      - redis
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
     restart: always
 
   faceid_db:

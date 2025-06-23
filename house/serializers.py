@@ -28,14 +28,22 @@ class HouseSerializer(serializers.ModelSerializer):
     )
     region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all())
     district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all())
+    is_saved = serializers.SerializerMethodField()
 
 
     class Meta:
         model = House
         fields = [
             'id', 'title', 'price', 'region', 'district', 'room_count', 'description',
-            'views_count', 'images', 'uploaded_images'
+            'views_count', 'images', 'uploaded_images', 'is_saved',
         ]
+
+    def get_is_saved(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return obj.saved_by.filter(id=user.id).exists()
+        return False
+
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])

@@ -195,3 +195,28 @@ class DistrictListByRegionAPIView(APIView):
         districts = District.objects.filter(region_id=region_id)
         serializer = DistrictSerializer(districts, many=True)
         return Response(serializer.data)
+
+class ToggleSaveHouseAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            house = House.objects.get(pk=pk)
+        except House.DoesNotExist:
+            return Response({"error": "Uy topilmadi"}, status=404)
+
+        user = request.user
+        if house.saved_by.filter(id=user.id).exists():
+            house.saved_by.remove(user)
+            return Response({"saved": False, "message": "Saqlanganlardan chiqarildi"})
+        else:
+            house.saved_by.add(user)
+            return Response({"saved": True, "message": "Uy saqlandi"})
+
+
+class SavedHouseListAPIView(generics.ListAPIView):
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.saved_houses.filter(is_active=True, status='active')

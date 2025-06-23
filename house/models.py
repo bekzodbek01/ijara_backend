@@ -1,4 +1,6 @@
 from django.db import models
+
+from config import settings
 from users.models import AbstractUser
 
 class Region(models.Model):
@@ -26,6 +28,12 @@ class House(models.Model):
         ('active', 'Faol'),
         ('deactive', 'NoFaol'),
     ]
+    saved_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='saved_houses',
+        blank=True
+    )
+
     owner = models.ForeignKey(AbstractUser, on_delete=models.CASCADE, related_name='houses')
     title = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=12, decimal_places=2)

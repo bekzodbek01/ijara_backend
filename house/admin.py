@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import House, House_image
+from .models import House, House_image, District, Region
 
 
 class HouseImageInline(admin.TabularInline):  # yoki StackedInline
@@ -8,8 +8,8 @@ class HouseImageInline(admin.TabularInline):  # yoki StackedInline
 
 
 class HouseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'price', 'address', 'status', 'is_active', 'room_count', 'views_count']
-    search_fields = ['address', 'description']
+    list_display = ['id', 'price', 'region', 'status', 'is_active', 'room_count', 'views_count']
+    search_fields = ['region', 'description']
     inlines = [HouseImageInline]  # House_image modelini Inline tarzda qo‘shish
     ctions = ['approve_houses', 'reject_houses']
 
@@ -31,3 +31,14 @@ class HouseAdmin(admin.ModelAdmin):
 
 
 admin.site.register(House, HouseAdmin)
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ['name', 'region']
+    list_filter = ['region']
+    search_fields = ['name']

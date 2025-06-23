@@ -1,5 +1,18 @@
 from rest_framework import serializers
-from .models import House, House_image
+from .models import House, House_image, Region, District
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ['id', 'name']
+
+class DistrictSerializer(serializers.ModelSerializer):
+    region = RegionSerializer(read_only=True)
+
+    class Meta:
+        model = District
+        fields = ['id', 'name', 'region']
 
 
 class HouseImageSerializer(serializers.ModelSerializer):
@@ -13,11 +26,14 @@ class HouseSerializer(serializers.ModelSerializer):
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=False
     )
+    region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all())
+    district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all())
+
 
     class Meta:
         model = House
         fields = [
-            'id', 'price', 'address', 'room_count', 'description',
+            'id', 'title', 'price', 'region', 'district', 'room_count', 'description',
             'views_count', 'images', 'uploaded_images'
         ]
 

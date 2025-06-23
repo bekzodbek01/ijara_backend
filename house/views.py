@@ -1,28 +1,67 @@
 from rest_framework import generics, permissions
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 
-from .models import House
+from .models import House, Region, District
 from .permission import IsOwner, IsFaceVerified
-from .serializers import HouseSerializer
+from .serializers import HouseSerializer, RegionSerializer, DistrictSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import House_image
 
-# Barcha uyni ko‘rish (filter district orqali)
-
 
 class HouseListView(generics.ListAPIView):
-    queryset = House.objects.all()
+
     serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]  # login bo‘lsa yetarli
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        district = self.request.query_params.get('district')
+        queryset = House.objects.filter(is_active=True, status='active')
+        params = self.request.query_params
+
+        region = params.get('region')
+        district = params.get('district')
+        min_price = params.get('min_price')
+        max_price = params.get('max_price')
+        room_count = params.get('room_count')
+        search = params.get('search')  # title search uchun
+
+        if region:
+            if region.isdigit():
+                queryset = queryset.filter(region__id=int(region))
+            else:
+                queryset = queryset.filter(region__name__iexact=region.strip())
+
         if district:
-            queryset = queryset.filter(district__iexact=district)
+            if district.isdigit():
+                queryset = queryset.filter(district__id=int(district))
+            else:
+                queryset = queryset.filter(district__name__iexact=district.strip())
+
+        if min_price:
+            try:
+                queryset = queryset.filter(price__gte=float(min_price))
+            except ValueError:
+                pass
+
+        if max_price:
+            try:
+                queryset = queryset.filter(price__lte=float(max_price))
+            except ValueError:
+                pass
+
+        if room_count:
+            try:
+                queryset = queryset.filter(room_count=int(room_count))
+            except ValueError:
+                pass
+
+        if search:
+            queryset = queryset.filter(title__icontains=search.strip())
+
         return queryset
+
+
 
 # Uy haqida batafsil
 
@@ -38,6 +77,7 @@ class HouseDetailView(generics.RetrieveAPIView):
         instance.save()
         return super().retrieve(request, *args, **kwargs)
 
+
 # Uy egasi uyi qo‘shadi
 
 
@@ -46,14 +86,13 @@ class HouseCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsFaceVerified]
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user,  status='pending', is_active=False)
+        serializer.save(owner=self.request.user, status='pending', is_active=False)
 
 
 class HousePublicListView(generics.ListAPIView):
     queryset = House.objects.filter(status='active', is_active=True)
     serializer_class = HouseSerializer
     permission_classes = [IsAuthenticated]
-
 
 
 class MyDeactiveHouseListView(generics.ListAPIView):
@@ -102,10 +141,6 @@ class ResendToAdminView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
-# Tahrirlash va o‘chirish
-
-
 class HouseUpdateView(generics.UpdateAPIView):
     serializer_class = HouseSerializer
     queryset = House.objects.all()
@@ -113,6 +148,7 @@ class HouseUpdateView(generics.UpdateAPIView):
 
     def get_queryset(self):
         return House.objects.filter(owner=self.request.user)
+
 
 class HouseDeleteView(generics.DestroyAPIView):
     queryset = House.objects.all()
@@ -147,3 +183,15 @@ class HouseImageDeleteView(APIView):
         # O‘chirish
         image.delete()
         return Response({"message": "Rasm muvaffaqiyatli o‘chirildi"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class RegionListAPIView(generics.ListAPIView):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+
+class DistrictListByRegionAPIView(APIView):
+    def get(self, request, region_id):
+        districts = District.objects.filter(region_id=region_id)
+        serializer = DistrictSerializer(districts, many=True)
+        return Response(serializer.data)

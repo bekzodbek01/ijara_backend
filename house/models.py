@@ -1,6 +1,24 @@
 from django.db import models
 from users.models import AbstractUser
 
+class Region(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class District(models.Model):
+    name = models.CharField(max_length=100)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='districts')
+
+    class Meta:
+        unique_together = ('name', 'region')
+
+    def __str__(self):
+        return f"{self.region.name} - {self.name}"
+
+
 
 class House(models.Model):
     STATUS_CHOICES = [
@@ -9,9 +27,10 @@ class House(models.Model):
         ('deactive', 'NoFaol'),
     ]
     owner = models.ForeignKey(AbstractUser, on_delete=models.CASCADE, related_name='houses')
+    title = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=12, decimal_places=2)
-    address = models.CharField(max_length=255)
-    district = models.CharField(max_length=100)
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True)
+    district = models.ForeignKey(District, on_delete=models.SET_NULL, null=True, blank=True)
     room_count = models.IntegerField()
     description = models.TextField()
     phone_number = models.CharField(max_length=15, blank=True, null=True)  # ko‘rsatilgan bo‘lsa
@@ -22,7 +41,7 @@ class House(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.district} - {self.price}$"
+        return f"{self.title} - {self.price}$"
 
 
 class House_image(models.Model):
@@ -30,4 +49,4 @@ class House_image(models.Model):
     image = models.ImageField(upload_to='house_image', blank=True, null=True)
 
     def __str__(self):
-        return f"Image for {self.house.address}"
+        return f"Image for {self.house.title}"

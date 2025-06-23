@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     HouseListView, HouseDetailView, HouseCreateView,
     HouseUpdateView, HouseDeleteView, HouseImageDeleteView, HousePublicListView, MyDeactiveHouseListView,
-    HousePendingListView, ResendToAdminView
+    HousePendingListView, ResendToAdminView, RegionListAPIView, DistrictListByRegionAPIView
 )
 
 urlpatterns = [
@@ -18,5 +18,8 @@ urlpatterns = [
     path('houses/my-deactive/', MyDeactiveHouseListView.as_view(), name='my-deactive-houses'),
     path('houses/my-pending/', HousePendingListView.as_view(), name='my-pending-houses'),
     path('houses/resend-to-admin/', ResendToAdminView.as_view(), name='resend-to-admin'),
+
+    path('regions/', RegionListAPIView.as_view(), name='region-list'),
+    path('districts/by-region/<int:region_id>/', DistrictListByRegionAPIView.as_view(), name='district-by-region'),
 
 ]

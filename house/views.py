@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.generics import get_object_or_404
 from .models import House, Region, District
 from .permission import IsOwner, IsFaceVerified
 from .serializers import HouseSerializer, RegionSerializer, DistrictSerializer
@@ -190,11 +190,12 @@ class RegionListAPIView(generics.ListAPIView):
     serializer_class = RegionSerializer
 
 
-class DistrictListByRegionAPIView(APIView):
+class RegionDetailWithDistrictsAPIView(APIView):
     def get(self, request, region_id):
-        districts = District.objects.filter(region_id=region_id)
-        serializer = DistrictSerializer(districts, many=True)
+        region = get_object_or_404(Region, id=region_id)
+        serializer = RegionSerializer(region)
         return Response(serializer.data)
+
 
 class ToggleSaveHouseAPIView(APIView):
     permission_classes = [IsAuthenticated]

@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     HouseListView, HouseDetailView, HouseCreateView,
     HouseUpdateView, HouseDeleteView, HouseImageDeleteView, HousePublicListView, MyDeactiveHouseListView,
-    HousePendingListView, ResendToAdminView, RegionListAPIView, DistrictListByRegionAPIView, ToggleSaveHouseAPIView,
+    HousePendingListView, ResendToAdminView, RegionListAPIView, RegionDetailWithDistrictsAPIView, ToggleSaveHouseAPIView,
     SavedHouseListAPIView
 )
 
@@ -21,7 +21,7 @@ urlpatterns = [
     path('houses/resend-to-admin/', ResendToAdminView.as_view(), name='resend-to-admin'),
 
     path('regions/', RegionListAPIView.as_view(), name='region-list'),
-    path('districts/by-region/<int:region_id>/', DistrictListByRegionAPIView.as_view(), name='district-by-region'),
+    path('districts/by-region/<int:region_id>/', RegionDetailWithDistrictsAPIView.as_view(), name='district-by-region'),
 
     path('houses/<int:pk>/favorite-save/', ToggleSaveHouseAPIView.as_view(), name='toggle-save-house'),
     path('houses/favorite/', SavedHouseListAPIView.as_view(), name='saved-houses'),

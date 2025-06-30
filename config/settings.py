@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 #
 # DATABASES = {
 #     'default': {
@@ -91,7 +91,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-#
+# #
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

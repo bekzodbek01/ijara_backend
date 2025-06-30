@@ -84,7 +84,6 @@ class FaceCompareResponseSerializer(serializers.ModelSerializer):
     face_image = serializers.SerializerMethodField()
     message = serializers.SerializerMethodField()
 
-
     class Meta:
         model = FaceComparison
         fields = ['id', 'passport_image', 'face_image', 'match_result', 'message', 'created_at',]
@@ -107,16 +106,16 @@ class FaceCompareResponseSerializer(serializers.ModelSerializer):
         else:
             return "Bu boshqa odam bo‘lishi mumkin."
 
+
 class UserContactSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
     class Meta:
         model = AbstractUser
         fields = ['id', 'full_name', 'phone', 'image']
+        read_only_fields = ['phone']  # phone maydonini o‘zgartirib bo‘lmaydigan qilamiz
         extra_kwargs = {
             'full_name': {'required': False},
-            'phone': {'required': False},
-
         }
 
     def get_image(self, obj):
@@ -131,9 +130,9 @@ class UserContactSerializer(serializers.ModelSerializer):
         if image_data:
             instance.image = image_data
 
-        for field in ['full_name', 'phone',]:
-            if field in validated_data:
-                setattr(instance, field, validated_data[field])
+        # faqat full_name yangilanishiga ruxsat beramiz
+        if 'full_name' in validated_data:
+            instance.full_name = validated_data['full_name']
 
         instance.save()
         return instance

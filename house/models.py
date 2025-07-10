@@ -2,6 +2,8 @@ from django.db import models
 
 from config import settings
 from users.models import AbstractUser
+from django.db import models
+
 
 class Region(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -19,7 +21,6 @@ class District(models.Model):
 
     def __str__(self):
         return f"{self.region.name} - {self.name}"
-
 
 
 class House(models.Model):

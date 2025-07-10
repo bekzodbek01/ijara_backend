@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from .models import House, House_image, District, Region
 
 
@@ -31,14 +31,16 @@ class HouseAdmin(admin.ModelAdmin):
 
 
 admin.site.register(House, HouseAdmin)
+admin.site.register(District)
+
+
+class DistrictInline(admin.TabularInline):  # yoki admin.StackedInline
+    model = District
+    extra = 1
+
 
 @admin.register(Region)
 class RegionAdmin(admin.ModelAdmin):
+    list_display = ['name']
     search_fields = ['name']
-
-
-@admin.register(District)
-class DistrictAdmin(admin.ModelAdmin):
-    list_display = ['name', 'region']
-    list_filter = ['region']
-    search_fields = ['name']
+    inlines = [DistrictInline]

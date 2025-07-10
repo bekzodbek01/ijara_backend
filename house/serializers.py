@@ -2,17 +2,18 @@ from rest_framework import serializers
 from .models import House, House_image, Region, District
 
 
-class RegionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Region
-        fields = ['id', 'name']
-
 class DistrictSerializer(serializers.ModelSerializer):
-    region = RegionSerializer(read_only=True)
-
     class Meta:
         model = District
-        fields = ['id', 'name', 'region']
+        fields = ['id', 'name']
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    districts = DistrictSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Region
+        fields = ['id', 'name', 'districts']
 
 
 class HouseImageSerializer(serializers.ModelSerializer):

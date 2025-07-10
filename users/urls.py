@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import UserRegistrationView, UserLoginView, UserPasswordChangeView, UploadPassportAPIView, \
-    CompareFaceAPIView
+    CompareFaceAPIView, ViewPassportImageAPIView, ViewFaceImageAPIView
 from .views import (
     UpdateContactView,
     ProfileUpdateView,
@@ -24,5 +24,9 @@ urlpatterns = [
     path('profile/logout/', LogoutView.as_view(), name='logout'),
     path('profile/image/', ProfileImageDeleteView.as_view(), name='profile-image-delete'),
     path('user/profile/me/', GlobalContactView.as_view()),
+
+    path('view-passport-image/', ViewPassportImageAPIView.as_view(), name='view-passport-image'),
+    path('view-face-image/', ViewFaceImageAPIView.as_view(), name='view-face-image'),
+
 ]
 

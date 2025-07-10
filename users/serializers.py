@@ -130,9 +130,9 @@ class UserContactSerializer(serializers.ModelSerializer):
         if image_data:
             instance.image = image_data
 
-        # faqat full_name yangilanishiga ruxsat beramiz
-        if 'full_name' in validated_data:
-            instance.full_name = validated_data['full_name']
+        for field in ['full_name', 'phone',]:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
 
         instance.save()
         return instance

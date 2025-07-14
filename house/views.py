@@ -90,9 +90,12 @@ class HouseCreateView(generics.CreateAPIView):
 
 
 class HousePublicListView(generics.ListAPIView):
-    queryset = House.objects.filter(status='active', is_active=True)
     serializer_class = HouseSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return House.objects.filter(owner=user, status='active', is_active=True)
 
 
 class MyDeactiveHouseListView(generics.ListAPIView):

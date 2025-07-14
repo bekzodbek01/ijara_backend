@@ -16,8 +16,18 @@ class HouseListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = House.objects.filter(owner=user, status='active', is_active=True)
 
+        # 1. Barcha active e'lonlar
+        queryset = House.objects.filter(status='active', is_active=True)
+
+        # 2. Agar Seller bo‘lsa, faqat o‘zining zakaslari
+        if user.role == 'Seller':
+            queryset = queryset.filter(owner=user)
+
+        # 3. Tartiblash - ohirgi qo‘shilganlar birinchi bo‘lib chiqadi
+        queryset = queryset.order_by('-created_at')
+
+        # 4. Filtering query params orqali
         params = self.request.query_params
 
         region = params.get('region')
@@ -25,7 +35,7 @@ class HouseListView(generics.ListAPIView):
         min_price = params.get('min_price')
         max_price = params.get('max_price')
         room_count = params.get('room_count')
-        search = params.get('search')  # title bo‘yicha qidiruv
+        search = params.get('search')
 
         if region:
             if region.isdigit():
@@ -61,6 +71,7 @@ class HouseListView(generics.ListAPIView):
             queryset = queryset.filter(title__icontains=search.strip())
 
         return queryset
+
 
 
 

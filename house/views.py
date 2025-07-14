@@ -11,12 +11,13 @@ from .models import House_image
 
 
 class HouseListView(generics.ListAPIView):
-
     serializer_class = HouseSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = House.objects.filter(is_active=True, status='active')
+        user = self.request.user
+        queryset = House.objects.filter(owner=user, status='active', is_active=True)
+
         params = self.request.query_params
 
         region = params.get('region')
@@ -24,7 +25,7 @@ class HouseListView(generics.ListAPIView):
         min_price = params.get('min_price')
         max_price = params.get('max_price')
         room_count = params.get('room_count')
-        search = params.get('search')  # title search uchun
+        search = params.get('search')  # title bo‘yicha qidiruv
 
         if region:
             if region.isdigit():
@@ -83,7 +84,7 @@ class HouseDetailView(generics.RetrieveAPIView):
 
 class HouseCreateView(generics.CreateAPIView):
     serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated, IsFaceVerified]
+    permission_classes = [IsAuthenticated,]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user, status='pending', is_active=False)

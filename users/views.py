@@ -1,6 +1,7 @@
 import base64
 
 from django.core.cache import cache
+from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,6 +18,8 @@ from pillow_heif import register_heif_opener
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import GlobalUserContact
 from .serializers import GlobalContactSerializer
+from .serializers import UserContactSerializer
+
 register_heif_opener()
 
 
@@ -49,6 +52,12 @@ class CompareFaceAPIView(APIView):
         serializer = UploadFaceSerializer(data=request.data)
         if serializer.is_valid():
             face_file = serializer.validated_data['face_image']
+
+            face_bytes = face_file.read()
+            encoded_face = base64.b64encode(face_bytes).decode('utf-8')
+            cache.set(f"face_{request.user.id}", encoded_face, timeout=300)
+            # read() dan keyin file pointer boshiga qaytishi kerak:
+            face_file.seek(0)
 
             # Redisdan olish
             encoded_passport = cache.get(f"passport_{request.user.id}")
@@ -165,10 +174,6 @@ class UserPasswordChangeView(generics.GenericAPIView):
         serializer.save()
         return Response({"message": "Password updated successfully."})
 
-#rgerger
-
-
-from .serializers import UserContactSerializer
 
 
 class UpdateContactView(APIView):
@@ -267,3 +272,26 @@ class GlobalContactView(APIView):
             return Response({"detail": "Ma'lumotlar mavjud emas."}, status=404)
         serializer = GlobalContactSerializer(contact)
         return Response(serializer.data)
+
+
+class ViewPassportImageAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        encoded_passport = cache.get(f"passport_{request.user.id}")
+        if not encoded_passport:
+            return Response({"error": "Passport rasmi topilmadi"}, status=404)
+
+        passport_bytes = base64.b64decode(encoded_passport)
+        return HttpResponse(passport_bytes, content_type="image/jpeg")
+
+class ViewFaceImageAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        encoded_face = cache.get(f"face_{request.user.id}")
+        if not encoded_face:
+            return Response({"error": "Yuz rasmi topilmadi"}, status=404)
+
+        face_bytes = base64.b64decode(encoded_face)
+        return HttpResponse(face_bytes, content_type="image/jpeg")

@@ -84,7 +84,7 @@ class HouseDetailView(generics.RetrieveAPIView):
 
 class HouseCreateView(generics.CreateAPIView):
     serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, IsFaceVerified]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user, status='pending', is_active=False)

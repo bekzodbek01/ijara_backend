@@ -15,16 +15,9 @@ class HouseListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-
-        # 1. Barcha active e'lonlar
         queryset = House.objects.filter(status='active', is_active=True)
 
-        # 2. Agar Seller bo‘lsa, faqat o‘zining zakaslari
-        if user.role == 'Seller':
-            queryset = queryset.filter(owner=user)
-
-        # 3. Tartiblash - ohirgi qo‘shilganlar birinchi bo‘lib chiqadi
+        # 2. Oxirgi qo‘shilganlar birinchi bo‘lib chiqadi
         queryset = queryset.order_by('-created_at')
 
         # 4. Filtering query params orqali

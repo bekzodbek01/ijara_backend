@@ -124,7 +124,6 @@ class CompareFaceAPIView(APIView):
             return None
 
 
-
 class UserRegistrationView(generics.CreateAPIView):
     queryset = AbstractUser.objects.all()
     serializer_class = UserRegistrationSerializer

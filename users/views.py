@@ -9,40 +9,180 @@ from rest_framework import status, generics
 from .serializers import FaceCompareResponseSerializer, UserPasswordChangeSerializer, \
     UserRegistrationSerializer, UserLoginSerializer, UploadPassportSerializer, UploadFaceSerializer
 from .models import FaceComparison, AbstractUser
-import face_recognition
-import numpy as np
-from PIL import Image
-from io import BytesIO
-from django.core.files.base import ContentFile
-from pillow_heif import register_heif_opener
+
+
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import GlobalUserContact
 from .serializers import GlobalContactSerializer
 from .serializers import UserContactSerializer
+# faceid/views.py
+import os
+import cv2
+import base64
+import tempfile
+import traceback
+import numpy as np
+from PIL import Image, ExifTags
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.cache import cache
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from deepface import DeepFace
 
-register_heif_opener()
+# ===== LOYIHAGA MOS QILING =====
+# from .serializers import UploadPassportSerializer, UploadFaceSerializer, FaceCompareResponseSerializer
+# from .models import FaceComparison
+
+DEBUG_FACEID = True  # production uchun False qiling
+# Agar settings.py da belgilagan bo'lsangiz, o'shani oladi; aks holda default 0.50
+FACE_MATCH_THRESHOLD = getattr(settings, "FACE_MATCH_THRESHOLD", 0.50)
 
 
-def resize_image(image, max_size=800):
-    image.thumbnail((max_size, max_size), Image.LANCZOS)
-    return image
+def correct_image_orientation(image_path):
+    """
+    EXIF orientatsiyasini to'g'rilab, OpenCV (BGR) ndarray qaytaradi.
+    """
+    try:
+        image = Image.open(image_path)
+        orientation_key = None
+        for k, v in ExifTags.TAGS.items():
+            if v == "Orientation":
+                orientation_key = k
+                break
+
+        if orientation_key is not None:
+            exif = image._getexif()
+            if exif is not None:
+                val = exif.get(orientation_key, 1)
+                if val == 3:
+                    image = image.rotate(180, expand=True)
+                elif val == 6:
+                    image = image.rotate(270, expand=True)
+                elif val == 8:
+                    image = image.rotate(90, expand=True)
+
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        print("EXIF correction error:", e)
+        return cv2.imread(image_path)
+
+
+def respond_error(msg, status=400, exc=None):
+    """
+    DEBUG_FACEID True bo'lsa, exceptionni ham qaytaradi.
+    """
+    if DEBUG_FACEID and exc is not None:
+        print("TRACEBACK:", traceback.format_exc())
+        return Response({"error": f"{msg}: {str(exc)}"}, status=status)
+    return Response({"error": msg}, status=status)
 
 
 class UploadPassportAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # serializerni loyihaga mos import qiling
         serializer = UploadPassportSerializer(data=request.data)
-        if serializer.is_valid():
-            passport_file = serializer.validated_data['passport_image']
-            image_bytes = passport_file.read()
-            encoded_image = base64.b64encode(image_bytes).decode('utf-8')
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-            # Redisga saqlaymiz: TTL – 300 sekund (5 minut)
-            cache.set(f"passport_{request.user.id}", encoded_image, timeout=300)
+        passport_file = serializer.validated_data['passport_image']
+        image_bytes = passport_file.read()
 
-            return Response({"message": "Passport rasmi vaqtincha saqlandi"}, status=200)
-        return Response(serializer.errors, status=400)
+        # passport rasmni cache ga base64 qilib saqlaymiz (key user-specific)
+        try:
+            encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+            cache.set(f"passport_image_{request.user.id}", encoded_image, timeout=300)
+        except Exception as e:
+            return respond_error("Rasmni kodlashda xato", 400, e)
+
+        passport_path = None
+        temp_img_path = None
+        temp_face_crop_path = None
+
+        try:
+            # 1) vaqtinchalik passportni diskga yozish
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+                f.write(image_bytes)
+                f.flush()
+                passport_path = f.name
+
+            # 2) EXIF correction
+            img = correct_image_orientation(passport_path)
+            if img is None or img.size == 0:
+                return respond_error("Rasm o'qib bo'lmadi", 400)
+
+            # 3) agar juda kichik bo'lsa kattalashtirish
+            h, w = img.shape[:2]
+            if h < 300 or w < 300:
+                img = cv2.resize(img, (max(300, w * 2), max(300, h * 2)), interpolation=cv2.INTER_CUBIC)
+
+            # 4) DeepFace.extract_faces uchun vaqtincha .jpg ga yozamiz
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                cv2.imwrite(tmp.name, img)  # img BGR
+                temp_img_path = tmp.name
+
+            # 5) yuzni aniqlash (bir necha backend sinov)
+            face_img_rgb = None
+            for backend in ["retinaface", "mtcnn", "opencv"]:
+                try:
+                    faces = DeepFace.extract_faces(
+                        img_path=temp_img_path,
+                        detector_backend=backend,
+                        enforce_detection=False
+                    )
+                    if faces and isinstance(faces, list):
+                        first = faces[0]
+                        # defensive: DeepFace qaytishi har xil bo'lishi mumkin
+                        if isinstance(first, dict) and "face" in first:
+                            face = first["face"]
+                        else:
+                            face = first
+                        if isinstance(face, np.ndarray) and min(face.shape[:2]) >= 32:
+                            face_img_rgb = face  # RGB ndarray
+                            print(f"{backend} yuzni topdi: {face.shape}")
+                            break
+                except Exception as be:
+                    print(f"{backend} backend error:", be)
+
+            if face_img_rgb is None:
+                return respond_error("Yuz aniqlanmadi, boshqa rasm yuklang", 400)
+
+            # 6) float64 -> uint8 (DeepFace ko'pincha 0..1 float64 qaytaradi)
+            face_uint8 = face_img_rgb
+            if not isinstance(face_uint8, np.ndarray):
+                return respond_error("Yuz ma'lumot formati noto'g'ri", 400)
+            if face_uint8.dtype != np.uint8:
+                face_uint8 = (face_uint8 * 255).clip(0, 255).astype(np.uint8)
+
+            # 7) cropni vaqtincha saqlash va embedding olish
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_face:
+                cv2.imwrite(tmp_face.name, cv2.cvtColor(face_uint8, cv2.COLOR_RGB2BGR))
+                temp_face_crop_path = tmp_face.name
+
+            embedding_dict = DeepFace.represent(
+                img_path=temp_face_crop_path,
+                model_name="ArcFace",
+                detector_backend="skip",
+                enforce_detection=False
+            )
+            passport_vec = np.array(embedding_dict[0]["embedding"], dtype=np.float32)
+            cache.set(f"passport_embedding_{request.user.id}", passport_vec, timeout=300)
+
+        except Exception as e:
+            return respond_error("Xato yuz berdi", 400, e)
+
+        finally:
+            for p in [passport_path, temp_img_path, temp_face_crop_path]:
+                if p and os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception as ex:
+                        print("Faylni o'chirish xato:", ex)
+
+        return Response({"message": "Passport rasmi saqlandi ✅"}, status=200)
 
 
 class CompareFaceAPIView(APIView):
@@ -50,79 +190,140 @@ class CompareFaceAPIView(APIView):
 
     def post(self, request):
         serializer = UploadFaceSerializer(data=request.data)
-        if serializer.is_valid():
-            face_file = serializer.validated_data['face_image']
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-            face_bytes = face_file.read()
-            encoded_face = base64.b64encode(face_bytes).decode('utf-8')
-            cache.set(f"face_{request.user.id}", encoded_face, timeout=300)
-            # read() dan keyin file pointer boshiga qaytishi kerak:
-            face_file.seek(0)
+        face_file = serializer.validated_data["face_image"]
+        face_bytes = face_file.read()
 
-            # Redisdan olish
-            encoded_passport = cache.get(f"passport_{request.user.id}")
-            if not encoded_passport:
-                return Response({"error": "Passport rasmi topilmadi yoki vaqti o'tib ketgan"}, status=400)
+        # avvalgi saqlangan passport embedding va image
+        passport_vec = cache.get(f"passport_embedding_{request.user.id}")
+        passport_image_encoded = cache.get(f"passport_image_{request.user.id}")
 
-            passport_bytes = base64.b64decode(encoded_passport)
-            passport_file = BytesIO(passport_bytes)
+        if passport_vec is None or passport_image_encoded is None:
+            return respond_error("Passport rasmi topilmadi yoki vaqti o'tib ketgan", 400)
 
-            result = self.compare_faces(passport_file, face_file)
+        face_path = None
+        temp_img_path = None
+        temp_face_crop_path = None
 
-            if result is None:
-                return Response({"error": "Yuz aniqlanmadi"}, status=400)
-
-            if result:
-                # True bo‘lsa — bazaga yozamiz
-                passport_content = ContentFile(passport_bytes, 'passport.jpg')
-                face_io = BytesIO()
-                with Image.open(face_file) as face_img:
-                    face_img.save(face_io, format='JPEG')
-                face_content = ContentFile(face_io.getvalue(), 'face.jpg')
-
-                comparison = FaceComparison.objects.create(
-                    user=request.user,
-                    passport_image=passport_content,
-                    face_image=face_content,
-                    match_result=True
-                )
-
-                response_serializer = FaceCompareResponseSerializer(comparison, context={"request": request})
-                return Response(response_serializer.data, status=200)
-            else:
-                return Response({"error": "Yuz mos emas"}, status=400)
-
-        return Response(serializer.errors, status=400)
-
-    def compare_faces(self, passport_file, face_file):
         try:
-            with Image.open(passport_file) as passport_img:
-                passport_img = resize_image(passport_img)
-                passport_array = np.array(passport_img)
+            # 1) vaqtinchalik selfie diskga yozish
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+                f.write(face_bytes)
+                f.flush()
+                face_path = f.name
 
-            with Image.open(face_file) as face_img:
-                face_img = resize_image(face_img)
-                face_array = np.array(face_img)
+            # 2) EXIF correction
+            img = correct_image_orientation(face_path)
+            if img is None or img.size == 0:
+                return Response({"match_result": False, "message": "Rasm o'qib bo'lmadi"}, status=200)
 
-            passport_locations = face_recognition.face_locations(passport_array, model='hog')
-            face_locations = face_recognition.face_locations(face_array, model='hog')
+            # 3) kichik bo'lsa kattalashtirish
+            h, w = img.shape[:2]
+            if h < 300 or w < 300:
+                img = cv2.resize(img, (max(300, w * 2), max(300, h * 2)), interpolation=cv2.INTER_CUBIC)
 
-            if not passport_locations or not face_locations:
-                return None
+            # 4) DeepFace.extract_faces uchun vaqtincha .jpg
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                cv2.imwrite(tmp.name, img)
+                temp_img_path = tmp.name
 
-            passport_enc = face_recognition.face_encodings(passport_array, known_face_locations=passport_locations)
-            face_enc = face_recognition.face_encodings(face_array, known_face_locations=face_locations)
+            # 5) yuz aniqlash
+            face_img_rgb = None
+            for backend in ["retinaface", "mtcnn", "opencv"]:
+                try:
+                    faces = DeepFace.extract_faces(
+                        img_path=temp_img_path,
+                        detector_backend=backend,
+                        enforce_detection=False
+                    )
+                    if faces and isinstance(faces, list):
+                        first = faces[0]
+                        if isinstance(first, dict) and "face" in first:
+                            face = first["face"]
+                        else:
+                            face = first
+                        if isinstance(face, np.ndarray) and min(face.shape[:2]) >= 32:
+                            face_img_rgb = face
+                            print(f"{backend} yuzni topdi: {face.shape}")
+                            break
+                except Exception as be:
+                    print(f"{backend} backend error:", be)
 
-            if not passport_enc or not face_enc:
-                return None
+            if face_img_rgb is None:
+                return Response({"match_result": False, "message": "Yuz aniqlanmadi, boshqa rasm yuklang"}, status=200)
 
-            match = face_recognition.compare_faces([passport_enc[0]], face_enc[0])[0]
-            return match
+            # 6) float64 -> uint8 agar kerak bo'lsa
+            face_uint8 = face_img_rgb
+            if not isinstance(face_uint8, np.ndarray):
+                return Response({"match_result": False, "message": "Yuz ma'lumot formati noto'g'ri"}, status=200)
+            if face_uint8.dtype != np.uint8:
+                face_uint8 = (face_uint8 * 255).clip(0, 255).astype(np.uint8)
+
+            # 7) represent uchun cropni .jpg ga yozish
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_face:
+                cv2.imwrite(tmp_face.name, cv2.cvtColor(face_uint8, cv2.COLOR_RGB2BGR))
+                temp_face_crop_path = tmp_face.name
+
+            embedding_dict = DeepFace.represent(
+                img_path=temp_face_crop_path,
+                model_name="ArcFace",
+                detector_backend="skip",
+                enforce_detection=False
+            )
+            face_vec = np.array(embedding_dict[0]["embedding"], dtype=np.float32)
+
+            # 8) Similarity (cosine)
+            assport_vec = passport_vec / np.linalg.norm(passport_vec)
+            face_vec = face_vec / np.linalg.norm(face_vec)
+
+            similarity = float(np.dot(passport_vec, face_vec))
+            print(f"Similarity: {similarity:.6f}")
+
+            # 9) Threshold (settings orqali sozlanishi mumkin)
+            threshold = FACE_MATCH_THRESHOLD  # default 0.50, lekin 0.35 qilish tavsiya
+            match = similarity >= threshold
+
+            if not match:
+                # agar mos bo'lmasa passport cache'ini tozalash — qayta yuklash talab qilinadi
+                cache.delete(f"passport_embedding_{request.user.id}")
+                cache.delete(f"passport_image_{request.user.id}")
+                return Response({
+                    "match_result": False,
+                    "message": "Bu boshqa odam bo'lishi mumkin.",
+                    "similarity": similarity,
+                    "threshold": threshold
+                }, status=200)
+
+            # 10) Mos keldi — DB ga saqlash (model import qiling)
+            passport_content = ContentFile(base64.b64decode(passport_image_encoded), "passport.jpg")
+            face_content = ContentFile(face_bytes, "face.jpg")
+
+            comparison = FaceComparison.objects.create(
+                user=request.user,
+                passport_image=passport_content,
+                face_image=face_content,
+                match_result=True
+            )
+
+            response_serializer = FaceCompareResponseSerializer(comparison, context={"request": request})
+            data = response_serializer.data
+            data.update({"similarity": similarity, "threshold": threshold})
+            return Response(data, status=200)
 
         except Exception as e:
-            print("Face comparison error:", e)
-            return None
+            print("Self yuzda xato:", traceback.format_exc())
+            msg = f"Yuzni tekshirishda xato: {str(e)}" if DEBUG_FACEID else "Yuzni tekshirishda xato"
+            return Response({"match_result": False, "message": msg}, status=200)
 
+        finally:
+            for p in [face_path, temp_img_path, temp_face_crop_path]:
+                if p and os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception as ex:
+                        print("Fayl o'chirishda xato:", ex)
 
 class UserRegistrationView(generics.CreateAPIView):
     queryset = AbstractUser.objects.all()
@@ -141,7 +342,6 @@ class UserRegistrationView(generics.CreateAPIView):
             "access": str(refresh.access_token),
             "user": self.get_serializer(user).data
         }, status=status.HTTP_201_CREATED)
-
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -172,7 +372,6 @@ class UserPasswordChangeView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Password updated successfully."})
-
 
 
 class UpdateContactView(APIView):
@@ -283,6 +482,7 @@ class ViewPassportImageAPIView(APIView):
 
         passport_bytes = base64.b64decode(encoded_passport)
         return HttpResponse(passport_bytes, content_type="image/jpeg")
+
 
 class ViewFaceImageAPIView(APIView):
     permission_classes = [IsAuthenticated]

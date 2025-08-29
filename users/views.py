@@ -1,6 +1,6 @@
 import base64
 
-from django.core.cache import cache
+
 from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
@@ -324,6 +324,7 @@ class CompareFaceAPIView(APIView):
                         os.remove(p)
                     except Exception as ex:
                         print("Fayl o'chirishda xato:", ex)
+
 
 class UserRegistrationView(generics.CreateAPIView):
     queryset = AbstractUser.objects.all()

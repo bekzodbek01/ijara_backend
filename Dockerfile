@@ -1,5 +1,5 @@
 # Base image
-FROM python:3.10-slim
+FROM python:3.10.0-slim
 
 # Working directory
 WORKDIR /Faceid
@@ -27,14 +27,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install light packages first
-COPY light-packages.txt /Faceid/
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install --retries 10 --timeout 300 --no-cache-dir -r light-packages.txt
+# Copy requirements
+COPY requirements.txt /Faceid/
 
-# Copy and install heavy packages (TensorFlow, dlib, face-recognition, etc.)
-COPY heavy-packages.txt /Faceid/
-RUN pip install --retries 10 --timeout 600 --no-cache-dir -r heavy-packages.txt
+# Install Python packages
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Create static and media directories
 RUN mkdir -p /Faceid/staticfiles /Faceid/mediafiles

@@ -11,7 +11,7 @@ services:
       - static_volume:/Faceid/staticfiles
       - media_volume:/Faceid/mediafiles
     ports:
-      - "8002:8000"
+      - "8022:8000"
     depends_on:
       - faceid_db
       - redis
@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     restart: always
 
   faceid_db:
@@ -30,7 +30,7 @@ services:
       POSTGRES_USER: user_faceid
       POSTGRES_PASSWORD: password_faceid
     ports:
-      - "5434:5432"
+      - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -39,3 +39,4 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+

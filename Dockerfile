@@ -1,16 +1,16 @@
 # Base image
-FROM python:3.10.0-slim
+FROM python:3.10-slim
 
 # Working directory
 WORKDIR /Faceid
 
 # Environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_NO_CACHE_DIR=off
-ENV PIP_DISABLE_PIP_VERSION_CHECK=on
-ENV PIP_DEFAULT_TIMEOUT=300
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=1200
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,7 +32,7 @@ COPY requirements.txt /Faceid/
 
 # Install Python packages
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --timeout=1200 --retries=10 --no-cache-dir -r requirements.txt
 
 # Create static and media directories
 RUN mkdir -p /Faceid/staticfiles /Faceid/mediafiles

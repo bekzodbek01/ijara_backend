@@ -5,7 +5,6 @@ services:
     build: .
     env_file:
       - .env
-    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/Faceid
       - static_volume:/Faceid/staticfiles
@@ -39,4 +38,3 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
-

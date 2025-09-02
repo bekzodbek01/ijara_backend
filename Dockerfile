@@ -1,4 +1,4 @@
-# Base image: Python 3.10
+# Python 3.10 slim ishlatamiz
 FROM python:3.10-slim
 
 # System dependencies
@@ -13,22 +13,19 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set workdir
+# Workdir
 WORKDIR /app
 
-# Copy requirements first (cache optimization)
+# Requirementsni copy qilamiz va o'rnatamiz
 COPY requirements.txt .
-
-# Upgrade pip and install dependencies
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Project fayllarini copy qilamiz
 COPY . .
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
-# Start Django server
+# Django serverni ishga tushiramiz
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

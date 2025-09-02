@@ -1,30 +1,31 @@
+# Base image: Python 3.11
 FROM python:3.11-slim
 
-# Ishchi papka
-WORKDIR /Faceid
-
-# Sistem paketlari (agar kerak bo‘lsa)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# System dependencies
+RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    libopencv-dev \
-    wget \
-    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Requirements faylini konteynerga ko‘chirish
-COPY requirements.txt /Faceid/
+# Set workdir
+WORKDIR /app
 
-# Python paketlarini o‘rnatish
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install --timeout=1200 --retries=10 --no-cache-dir -r requirements.txt
+# Copy requirements first (cache optimization)
+COPY requirements.txt .
 
-# Django statik va media papkalar
-RUN mkdir -p /Faceid/staticfiles /Faceid/mediafiles
+# Install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Loyihani konteynerga ko‘chirish
-COPY . /Faceid/
+# Copy project files
+COPY . .
 
-# Default komanda
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"]
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8000
+
+# Start Django server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

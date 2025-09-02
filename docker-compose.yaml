@@ -1,40 +1,39 @@
-version: '3'
+version: '3.9'
 
 services:
   web:
     build: .
-    env_file:
-      - .env
-    volumes:
-      - .:/Faceid
-      - static_volume:/Faceid/staticfiles
-      - media_volume:/Faceid/mediafiles
+    container_name: ijara_backend-web
     ports:
       - "8022:8000"
     depends_on:
-      - faceid_db
+      - db
       - redis
-    restart: always
+    environment:
+      - DEBUG=1
+      - DJANGO_DB_HOST=db
+      - DJANGO_DB_PORT=5432
+      - DJANGO_DB_NAME=faceid
+      - DJANGO_DB_USER=faceid_user
+      - DJANGO_DB_PASSWORD=faceid_pass
 
-  redis:
-    image: redis:alpine
-    ports:
-      - "6380:6379"
-    restart: always
-
-  faceid_db:
-    image: postgres:latest
+  db:
+    image: postgres:15
+    container_name: ijara_backend-db
     environment:
       POSTGRES_DB: faceid
-      POSTGRES_USER: user_faceid
-      POSTGRES_PASSWORD: password_faceid
+      POSTGRES_USER: faceid_user
+      POSTGRES_PASSWORD: faceid_pass
     ports:
       - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: ijara_backend-redis
+    ports:
+      - "6380:6379"
 
 volumes:
   postgres_data:
-  static_volume:
-  media_volume:

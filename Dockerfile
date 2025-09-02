@@ -1,18 +1,22 @@
-# Base image: Python 3.10 slim
+# Base image: Python 3.10
 FROM python:3.10-slim
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    libgl1 \
     libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
     git \
     && rm -rf /var/lib/apt/lists/*
 
 # Set workdir
 WORKDIR /app
 
-# Copy requirements first
+# Copy requirements first (cache optimization)
 COPY requirements.txt .
 
 # Upgrade pip and install dependencies
@@ -24,9 +28,7 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-
-# Expose Django port
 EXPOSE 8000
 
 # Start Django server
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

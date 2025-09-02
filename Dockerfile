@@ -1,4 +1,4 @@
-# Python 3.10 slim ishlatamiz
+# Base image: Python 3.10
 FROM python:3.10-slim
 
 # System dependencies
@@ -16,16 +16,21 @@ RUN apt-get update && apt-get install -y \
 # Workdir
 WORKDIR /app
 
-# Requirementsni copy qilamiz va o'rnatamiz
+# Copy requirements first
 COPY requirements.txt .
+
+# Install Python packages
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Project fayllarini copy qilamiz
+# Copy project files
 COPY . .
 
+# Environment variables
 ENV PYTHONUNBUFFERED=1
+
+# Expose port
 EXPOSE 8000
 
-# Django serverni ishga tushiramiz
+# Start Django server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

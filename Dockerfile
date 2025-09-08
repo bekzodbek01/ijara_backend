@@ -1,6 +1,6 @@
 
 # Base image
-FROM python:3.10
+FROM python:3.10-slim-bullseye
 
 # Working directory
 WORKDIR /Fac
@@ -26,7 +26,7 @@ COPY requirements.txt /Fac/
 RUN pip install --upgrade pip && pip install --default-timeout=300 --retries 20 --no-cache-dir -r requirements.txt
 
 # Create static/media dirs
-RUN mkdir -p /Fac/staticfiles /Faceid/mediafiles
+RUN mkdir -p /Fac/staticfiles /Fac/mediafiles
 
 # Copy project
 COPY . /Fac/

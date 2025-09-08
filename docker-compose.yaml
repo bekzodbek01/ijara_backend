@@ -24,7 +24,7 @@ services:
       - "6379:6379"
     restart: always
 
-  ari_db:
+  fac_db:
       image: postgis/postgis:latest
       environment:
         POSTGRES_DB: fac

@@ -1,5 +1,6 @@
 # TensorFlow bazaviy imiji (CPU versiyasi)
-FROM tensorflow/tensorflow:2.15.0
+FROM tensorflow/tensorflow:2.15.0-slim
+
 
 # Ishchi katalog
 WORKDIR /Fac

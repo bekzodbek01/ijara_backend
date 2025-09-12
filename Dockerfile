@@ -1,16 +1,15 @@
-# TensorFlow bazaviy imiji (CPU versiyasi)
-FROM tensorflow/tensorflow:2.15.0-slim
+# Base image
+FROM python:3.10-slim-bullseye
 
-
-# Ishchi katalog
+# Working directory
 WORKDIR /Fac
 
-# Muhit o‘zgaruvchilar
+# Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/root/.local/bin:$PATH"
 
-# Sistem kutubxonalar (opencv, psycopg2 va boshqalar uchun kerak)
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -19,28 +18,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxrender1 \
     libxext6 \
+    libopencv-dev \
+    python3-opencv \
+    wget \
+    curl \
+    unzip \
+    git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Python kutubxonalarini o‘rnatish
+# Install pip packages
 COPY requirements.txt /Fac/
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir -r requirements.txt
 
-# Statik fayllar uchun papkalar
+# Static/media folders
 RUN mkdir -p /Fac/staticfiles /Fac/mediafiles
 
-# Loyiha fayllarini ko‘chirish
+# Copy project
 COPY . /Fac/
 
-# Django sozlamalari
+# Django settings
 ENV DJANGO_SETTINGS_MODULE=config.settings
 
-# Staticlarni tayyorlash
+# Collect static files
 RUN python manage.py collectstatic --noinput || true
 
-# Port ochish
+# Expose port
 EXPOSE 8000
 
-# Gunicorn bilan ishga tushirish
+# CMD: run with gunicorn
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers=3", "--threads=2", "--timeout=120"]

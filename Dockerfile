@@ -7,7 +7,7 @@ WORKDIR /Fac
 # Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PATH="/root/.local/bin:$PATH"
+ENV PATH="/Fac/.venv/bin:$PATH"
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,10 +27,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pip packages
+# Virtual environment yaratish
+RUN python -m venv /Fac/.venv
+
+# Upgrade pip & o‘rnatish
 COPY requirements.txt /Fac/
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install -r requirements.txt
 
 # Static/media folders
 RUN mkdir -p /Fac/staticfiles /Fac/mediafiles
@@ -47,5 +50,5 @@ RUN python manage.py collectstatic --noinput || true
 # Expose port
 EXPOSE 8000
 
-# CMD: run with gunicorn
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers=3", "--threads=2", "--timeout=120"]
+# CMD: run with gunicorn (virtual environment ishlatadi)
+CMD ["/Fac/.venv/bin/gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers=3", "--threads=2", "--timeout=120"]
